@@ -48,6 +48,7 @@ void Sawtooth(MONO_PCM& pcm, double f0, double gain)
 	}
 	pcm.wave_write_16bit_mono("Sawtooth.wav");
 }
+
 void Square(MONO_PCM& pcm, double f0, double gain)
 {
 	// ‹éŒ`”g
@@ -71,9 +72,10 @@ void Triangle(MONO_PCM& pcm, double f0, double gain)
 	// ŽOŠp”g
 	for (int i = 1; i <= 44; i = i + 2)
 	{
+		long i2 = i * i;
 		for (int n = 0; n < pcm.length; n++)
 		{
-			pcm.s[n] += 1.0 / (i * i) * sin(M_PI * i / 2.0) * sin(2.0 * M_PI * i * f0 * n / pcm.fs);
+			pcm.s[n] += 1.0 / i2 * sin(M_PI * i / 2.0) * sin(2.0 * M_PI * i * f0 * n / pcm.fs);
 		}
 	}
 
@@ -97,6 +99,27 @@ void cosSawtooth(MONO_PCM& pcm, double f0, double gain)
 	}
 
 	gain = 0.1; // ƒQƒCƒ“
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] *= gain;
+	}
+}
+
+void whitenoise(MONO_PCM& pcm, double f0)
+{
+	
+	// ”’FŽG‰¹
+	for (int i = 1; i <= 2205; i++)
+	{
+		double theta = (double)rand() / RAND_MAX * 2.0 * M_PI;
+		for (int n = 0; n < pcm.length; n++)
+		{
+			pcm.s[n] += sin(2.0 * M_PI * i * f0 * n / pcm.fs + theta);
+		}
+	}
+
+	double gain = 0.001; // ƒQƒCƒ“
 
 	for (int n = 0; n < pcm.length; n++)
 	{
@@ -168,12 +191,12 @@ int main(void) {
 	sine_wave(pcm, 523.25, 0.1, pcm.fs * 1.75, pcm.fs * 0.25); // C5
 	*/
 
-	f0 = 500.0; // Šî–{Žü”g”
+	f0 = 1.0; // Šî–{Žü”g”
 	gain = 0.1;
 
-	cosSawtooth(pcm, f0, gain);
+	whitenoise(pcm, f0);
 
-	pcm.wave_write_16bit_mono("cosSawtooth.wav");
+	pcm.wave_write_16bit_mono("WhiteNoise.wav");
 
 	return 0;
 }
