@@ -21,12 +21,86 @@ void sine_wave(MONO_PCM& pcm, double f0, double a, int offset, const int duratio
 	for (n = 0; n < pcm.fs * 0.01; n++)
 	{
 		s[n] *= (double)n / (pcm.fs * 0.01);
-		s[duration - n - 1] *= (double)n / (pcm.fs * 0.01);
+		int i = duration - n - 1;
+		s[i] *= (double)n / (pcm.fs * 0.01);
 	}
 
 	for (n = 0; n < duration; n++)
 	{
-		pcm.s[offset + n] += s[n];
+		int i = offset + n;
+		pcm.s[i] += s[n];
+	}
+}
+
+void Sawtooth(MONO_PCM& pcm, double f0, double gain)
+{
+	for (int i = 1; i <= 44; i++)
+	{
+		for (int n = 0; n < pcm.length; n++)
+		{
+			pcm.s[n] += 1.0 / i * sin(2.0 * M_PI * i * f0 * n / pcm.fs);
+		}
+	}
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] *= gain;
+	}
+	pcm.wave_write_16bit_mono("Sawtooth.wav");
+}
+void Square(MONO_PCM& pcm, double f0, double gain)
+{
+	// 矩形波
+	for (int i = 1; i <= 44; i += 2)
+	{
+		for (int n = 0; n < pcm.length; ++n)
+		{
+			pcm.s[n] += 1.0 / i * sin(2.0 * M_PI * i * f0 * n / pcm.fs);
+		}
+	}
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] *= gain;
+	}
+	pcm.wave_write_16bit_mono("Square.wav");
+}
+
+void Triangle(MONO_PCM& pcm, double f0, double gain)
+{
+	// 三角波
+	for (int i = 1; i <= 44; i = i + 2)
+	{
+		for (int n = 0; n < pcm.length; n++)
+		{
+			pcm.s[n] += 1.0 / (i * i) * sin(M_PI * i / 2.0) * sin(2.0 * M_PI * i * f0 * n / pcm.fs);
+		}
+	}
+
+	gain = 0.1; // ゲイン
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] *= gain;
+	}
+}
+
+void cosSawtooth(MONO_PCM& pcm, double f0, double gain)
+{
+	// コサイン波の重ね合わせによるノコギリ波
+	for (int i = 1; i <= 44; i++)
+	{
+		for (int n = 0; n < pcm.length; n++)
+		{
+			pcm.s[n] += 1.0 / i * cos(2.0 * M_PI * i * f0 * n / pcm.fs);
+		}
+	}
+
+	gain = 0.1; // ゲイン
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] *= gain;
 	}
 }
 
@@ -74,19 +148,14 @@ int main(void) {
 	return 0;
 	*/
 
-	MONO_PCM Sawtooth;
-	MONO_PCM Square;
+	MONO_PCM pcm;
 	double f0, gain;
 
-	Sawtooth.fs = 44100; /* 標本化周波数 */
-	Sawtooth.bits = 16; /* 量子化精度 */
-	Sawtooth.length = Sawtooth.fs * 1; /* 音データの長さ */
-	Sawtooth.s.resize(Sawtooth.length); /* 音データ */
+	pcm.fs = 44100; /* 標本化周波数 */
+	pcm.bits = 16; /* 量子化精度 */
+	pcm.length = pcm.fs * 1; /* 音データの長さ */
+	pcm.s.resize(pcm.length); /* 音データ */
 
-	Square.fs = 44100; /* 標本化周波数 */
-	Square.bits = 16; /* 量子化精度 */
-	Square.length = Square.fs * 1; /* 音データの長さ */
-	Square.s.resize(Square.length); /* 音データ */
 
 	/*//ドレミ
 	sine_wave(pcm, 261.63, 0.1, pcm.fs * 0.00, pcm.fs * 0.25); // C4
@@ -100,38 +169,11 @@ int main(void) {
 	*/
 
 	f0 = 500.0; // 基本周波数
+	gain = 0.1;
 
-	// ノコギリ波
-	for (int i = 1; i <= 44; i++)
-	{
-		for (int n = 0; n < Sawtooth.length; n++)
-		{
-			Sawtooth.s[n] += 1.0 / i * sin(2.0 * M_PI * i * f0 * n / Sawtooth.fs);
-		}
-	}
-	// 矩形波
-	for (int i = 1; i <= 44; i += 2)
-	{
-		for (int n = 0; n < Square.length; ++n)
-		{
-			Square.s[n] += 1.0 / i * sin(2.0 * M_PI * i * f0 * n / Square.fs);
-		}
-	}
+	cosSawtooth(pcm, f0, gain);
 
-	gain = 0.1; // ゲイン
-
-	for (int n = 0; n < Sawtooth.length; n++)
-	{
-		Sawtooth.s[n] *= gain;
-	}
-
-	for (int n = 0; n < Square.length; n++)
-	{
-		Square.s[n] *= gain;
-	}
-
-	Sawtooth.wave_write_16bit_mono("ex3_1.wav");
-	Square.wave_write_16bit_mono("ex3_2.wav");
+	pcm.wave_write_16bit_mono("cosSawtooth.wav");
 
 	return 0;
 }

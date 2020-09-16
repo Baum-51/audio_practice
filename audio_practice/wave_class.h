@@ -54,7 +54,7 @@ int MONO_PCM:: wave_read_16bit_mono(std::string file_name)
 
 
     //fopen_s(&fp, file_name, "r");
-    file.open(file_name, std::ios::out | std::ios::binary);
+    file.open(file_name.c_str(), std::ios::out | std::ios::binary);
     if (!file.is_open()) {
         return EXIT_FAILURE;
     }
@@ -120,7 +120,7 @@ int MONO_PCM::wave_write_16bit_mono(std::string file_name)
     data_chunk_ID[3] = 'a';
     data_chunk_size = length * 2;
 
-    file.open(file_name, std::ios::out | std::ios::binary);
+    file.open(file_name.c_str(), std::ios::out | std::ios::binary);
     if (!file.is_open()) {
         return EXIT_FAILURE;
     }
