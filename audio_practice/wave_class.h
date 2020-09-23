@@ -10,9 +10,9 @@
 class MONO_PCM
 {
 public:
-	int fs;
-	int bits;
-	int length;
+	int fs = 44100;
+	int bits = 16;
+	int length = 44100 * 1;
 	std::vector<double> s;
 
 private:
@@ -49,29 +49,29 @@ struct STEREO_PCM
 	double* sR;
 };
 
-int MONO_PCM:: wave_read_16bit_mono(std::string file_name)
+int MONO_PCM:: wave_read_16bit_mono(std::string ifile_name)
 {
-
-
+    file_name = ifile_name;
     //fopen_s(&fp, file_name, "r");
-    file.open(file_name.c_str(), std::ios::out | std::ios::binary);
-    if (!file.is_open()) {
+    file.open(file_name.c_str(), std::ios::in | std::ios::binary);
+    if (!file) {
         return EXIT_FAILURE;
     }
+    
+    file.read(riff_chunk_ID, sizeof(char) * 4);
+    file.read((char*)&riff_chunk_size, sizeof(long));
+    file.read(file_format_type, sizeof(char) * 4);
+    file.read(fmt_chunk_ID, sizeof(char) * 4);
+    file.read((char*)&fmt_chunk_size, sizeof(long));
+    file.read((char*)&wave_format_type, sizeof(short));
+    file.read((char*)&channel, sizeof(short));
+    file.read((char*)&samples_per_sec, sizeof(long));
+    file.read((char*)&bytes_per_sec, sizeof(long));
+    file.read((char*)&block_size, sizeof(short));
+    file.read((char*)&bits_per_sample, sizeof(short));
+    file.read(data_chunk_ID, sizeof(char) * 4);
+    file.read((char*)&data_chunk_size, sizeof(long));
 
-    file.read(riff_chunk_ID, 4);
-    file.read((char*)&riff_chunk_size, 4);
-    file.read(file_format_type, 4);
-    file.read(fmt_chunk_ID, 4);
-    file.read((char*)&fmt_chunk_size, 4);
-    file.read((char*)&wave_format_type, 2);
-    file.read((char*)&channel, 2);
-    file.read((char*)&samples_per_sec, 4);
-    file.read((char*)&bytes_per_sec, 4);
-    file.read((char*)&block_size, 2);
-    file.read((char*)&bits_per_sample, 2);
-    file.read(data_chunk_ID, 4);
-    file.read((char*)&data_chunk_size, 4);
 
     fs = samples_per_sec; // 標本化周波数 
     bits = bits_per_sample; // 量子化精度 
@@ -80,8 +80,9 @@ int MONO_PCM:: wave_read_16bit_mono(std::string file_name)
 
     for (n = 0; n < length; n++)
     {
-        file.read((char*)&data, 2); // 音データの読み取り 
-        s[n] = data / 32768.0; // 音データを-1以上1未満の範囲に正規化する 
+        //file.read((char*)&data, 2); // 音データの読み取り 
+        file.read((char*)&data, sizeof(short));
+        s[n] = (double)data / 32768.0; // 音データを-1以上1未満の範囲に正規化する 
     }
 
     file.close();
@@ -91,7 +92,6 @@ int MONO_PCM:: wave_read_16bit_mono(std::string file_name)
 
 int MONO_PCM::wave_write_16bit_mono(std::string file_name)
 {
-    std::fstream file;
     riff_chunk_ID[0] = 'R';
     riff_chunk_ID[1] = 'I';
     riff_chunk_ID[2] = 'F';
@@ -125,19 +125,19 @@ int MONO_PCM::wave_write_16bit_mono(std::string file_name)
         return EXIT_FAILURE;
     }
 
-    file.write(riff_chunk_ID, 4);
-    file.write((char*)&riff_chunk_size, 4);
-    file.write(file_format_type, 4);
-    file.write(fmt_chunk_ID, 4);
-    file.write((char*)&fmt_chunk_size, 4);
-    file.write((char*)&wave_format_type, 2);
-    file.write((char*)&channel, 2);
-    file.write((char*)&samples_per_sec, 4);
-    file.write((char*)&bytes_per_sec, 4);
-    file.write((char*)&block_size, 2);
-    file.write((char*)&bits_per_sample, 2);
-    file.write(data_chunk_ID, 4);
-    file.write((char*)&data_chunk_size, 4);
+    file.write(riff_chunk_ID, sizeof(char) * 4);
+    file.write((char*)&riff_chunk_size, sizeof(long));
+    file.write(file_format_type, sizeof(char) * 4);
+    file.write(fmt_chunk_ID, sizeof(char) * 4);
+    file.write((char*)&fmt_chunk_size, sizeof(long));
+    file.write((char*)&wave_format_type, sizeof(short));
+    file.write((char*)&channel, sizeof(short));
+    file.write((char*)&samples_per_sec, sizeof(long));
+    file.write((char*)&bytes_per_sec, sizeof(long));
+    file.write((char*)&block_size, sizeof(short));
+    file.write((char*)&bits_per_sample, sizeof(short));
+    file.write(data_chunk_ID, sizeof(char) * 4);
+    file.write((char*)&data_chunk_size, sizeof(long));
 
     for (n = 0; n < length; n++)
     {
@@ -153,7 +153,7 @@ int MONO_PCM::wave_write_16bit_mono(std::string file_name)
         }
 
         data = (short)((s_data + 0.5) - 32768); // 四捨五入とオフセットの調節 
-        file.write((char*)&data, 2); // 音データの書き出し 
+        file.write((char*)&data, sizeof(short)); // 音データの書き出し 
     }
 
     file.close();

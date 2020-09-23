@@ -1,7 +1,9 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <iostream>
+#include <vector>
 #include "wave_class.h"
+using namespace std;
 
 void sine_wave(MONO_PCM& pcm, double f0, double a, int offset, const int duration)
 {
@@ -33,7 +35,8 @@ void sine_wave(MONO_PCM& pcm, double f0, double a, int offset, const int duratio
 }
 
 void Sawtooth(MONO_PCM& pcm, double f0, double gain)
-{
+{	
+	//のこぎり波
 	for (int i = 1; i <= 44; i++)
 	{
 		for (int n = 0; n < pcm.length; n++)
@@ -119,11 +122,47 @@ void whitenoise(MONO_PCM& pcm, double f0)
 		}
 	}
 
-	double gain = 0.001; // ゲイン
+	double gain = 0.1; // ゲイン
 
 	for (int n = 0; n < pcm.length; n++)
 	{
 		pcm.s[n] *= gain;
+	}
+}
+
+void DFT(std::string file_name)
+{
+	int N = 64; //DFTのサイズ
+	std::vector<double> x_real(N), x_imag(N), X_real(N), X_imag(N);
+	double W_real, W_imag;
+	MONO_PCM pcm;
+
+	pcm.wave_read_16bit_mono(file_name);
+
+
+	// 波形
+	for (int n = 0; n < N; n++)
+	{
+		x_real[n] = pcm.s[n]; // x(n)の実数部
+		x_imag[n] = 0.0; // x(n)の虚数部
+	}
+
+	// DFT 
+	for (int k = 0; k < N; k++)
+	{
+		for (int n = 0; n < N; n++)
+		{
+			W_real = cos(2.0 * M_PI * k * n / N);
+			W_imag = -sin(2.0 * M_PI * k * n / N);
+			X_real[k] += W_real * x_real[n] - W_imag * x_imag[n]; // X(k)の実数部
+			X_imag[k] += W_real * x_imag[n] + W_imag * x_real[n]; // X(k)の虚数部
+		}
+	}
+
+	// 周波数特性
+	for (int k = 0; k < N; k++)
+	{
+		printf("X(%d) = %f+j%f\n", k, X_real[k], X_imag[k]);
 	}
 }
 
@@ -172,13 +211,14 @@ int main(void) {
 	*/
 
 	MONO_PCM pcm;
+	/*
 	double f0, gain;
 
-	pcm.fs = 44100; /* 標本化周波数 */
-	pcm.bits = 16; /* 量子化精度 */
-	pcm.length = pcm.fs * 1; /* 音データの長さ */
-	pcm.s.resize(pcm.length); /* 音データ */
-
+	pcm.fs = 44100; // 標本化周波数
+	pcm.bits = 16; // 量子化精度
+	pcm.length = pcm.fs * 1; // 音データの長さ
+	pcm.s.resize(pcm.length); // 音データ
+	*/
 
 	/*//ドレミ
 	sine_wave(pcm, 261.63, 0.1, pcm.fs * 0.00, pcm.fs * 0.25); // C4
@@ -191,12 +231,19 @@ int main(void) {
 	sine_wave(pcm, 523.25, 0.1, pcm.fs * 1.75, pcm.fs * 0.25); // C5
 	*/
 
-	f0 = 1.0; // 基本周波数
-	gain = 0.1;
 
-	whitenoise(pcm, f0);
+	double f0 = 440.0; // 基本周波数
+	double gain = 0.1;
 
-	pcm.wave_write_16bit_mono("WhiteNoise.wav");
+	pcm.s.resize(pcm.length);
+
+	for (int n = 0; n < pcm.length; n++)
+	{
+		pcm.s[n] = 0.1 * sin(2.0 * M_PI * f0 * n / pcm.fs);
+	}
+
+	DFT("sine_440hz.wav");
+	//pcm.wave_write_16bit_mono("sine_500hz.wav");
 
 	return 0;
 }
